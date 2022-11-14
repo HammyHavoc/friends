@@ -51,17 +51,22 @@ class Automatic_Status {
 	 * Add the admin menu to the sidebar.
 	 */
 	public function admin_menu() {
-		$menu_title = __( 'Friends', 'friends' ) . $this->friends->admin->get_unread_badge();
+		$required_role = Friends::required_menu_role();
+		$unread_badge = $this->friends->admin->get_unread_badge();
+
+		$menu_title = __( 'Friends', 'friends' ) . $unread_badge;
 		$page_type = sanitize_title( $menu_title );
 
 		add_submenu_page(
 			'friends',
 			__( 'Automatic Status', 'friends' ),
 			__( 'Automatic Status', 'friends' ),
-			'administrator',
+			Friends::required_menu_role(),
 			'friends-auto-status',
 			array( $this, 'validate_drafts' )
 		);
+
+		add_action( 'load-' . $page_type . '_page_friends-auto-status', array( $this, 'potentially_redirect' ) );
 	}
 
 	/**
@@ -76,10 +81,7 @@ class Automatic_Status {
 		return $menu;
 	}
 
-	/**
-	 * This displays the Automatically Generated Statuses admin page.
-	 */
-	public function validate_drafts() {
+	public function potentially_redirect() {
 		if ( empty( $_GET['post_format'] ) ) {
 			wp_safe_redirect(
 				add_query_arg(
@@ -91,8 +93,26 @@ class Automatic_Status {
 					self_admin_url( 'admin.php?page=friends-auto-status' )
 				)
 			);
-			wp_die();
+			exit;
 		}
+	}
+
+	/**
+	 * This displays the Automatically Generated Statuses admin page.
+	 */
+	public function validate_drafts() {
+		if ( ! Friends::has_required_privileges() ) {
+			wp_die( esc_html__( 'Sorry, you are not allowed to change the settings.', 'friends' ) );
+		}
+
+		Friends::template_loader()->get_template_part(
+			'admin/settings-header',
+			null,
+			array(
+				'active' => 'friends-auto-status',
+				'title'  => __( 'Friends', 'friends' ),
+			)
+		);
 
 		add_filter(
 			'manage_edit-post_columns',
@@ -200,14 +220,6 @@ class Automatic_Status {
 		$bulk_messages = apply_filters( 'bulk_post_updated_messages', $bulk_messages, $bulk_counts );
 		$bulk_counts   = array_filter( $bulk_counts );
 
-		Friends::template_loader()->get_template_part(
-			'admin/settings-header',
-			null,
-			array(
-				'active' => 'friends-auto-status',
-				'title'  => __( 'Friends', 'friends' ),
-			)
-		);
 		Friends::template_loader()->get_template_part( 'admin/automatic-status-list-table', false, compact( 'wp_list_table', 'post_type' ) );
 		Friends::template_loader()->get_template_part( 'admin/settings-footer' );
 	}

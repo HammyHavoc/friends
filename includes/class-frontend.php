@@ -468,7 +468,7 @@ class Frontend {
 			exit;
 		}
 
-		if ( $friend_user->is_friend_url( $comments_url ) && current_user_can( Friends::REQUIRED_ROLE ) || wp_doing_cron() ) {
+		if ( $friend_user->is_friend_url( $comments_url ) && friends::has_required_privileges() || wp_doing_cron() ) {
 			$comments_url = apply_filters( 'friends_friend_private_feed_url', $comments_url, $friend_user );
 			$comments_url = $this->friends->access_control->append_auth( $comments_url, $friend_user, 300 );
 		}
@@ -860,7 +860,7 @@ class Frontend {
 		}
 
 		// Not available for the general public or friends.
-		$viewable = current_user_can( Friends::REQUIRED_ROLE );
+		$viewable = friends::has_required_privileges();
 		if ( $query->is_feed() ) {
 			// Feeds can be viewed through extra authentication.
 			if ( $this->friends->access_control->private_rss_is_authenticated() ) {
@@ -964,7 +964,7 @@ class Frontend {
 		$query->set( 'post_type', $post_types );
 		$query->set( 'tax_query', $tax_query );
 
-		if ( current_user_can( Friends::REQUIRED_ROLE ) ) {
+		if ( friends::has_required_privileges() ) {
 			$post_status = array( 'publish', 'private' );
 			if ( isset( $_GET['maybe-in-trash'] ) ) {
 				$post_status[] = 'trash';
