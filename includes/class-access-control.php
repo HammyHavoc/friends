@@ -140,13 +140,17 @@ class Access_Control {
 			return;
 		}
 		$tokens = explode( '-', $_GET['friend_auth'] );
-		if ( 3 === count( $tokens ) ) {
-			$user_id = $this->verify_token( $tokens[0], $tokens[1], $tokens[2] );
-		} elseif ( 2 === count( $tokens ) && isset( $_GET['me'] ) ) {
-			$user_id = $this->verify_token( $_GET['me'], $tokens[0], $tokens[1] );
+		$auth = array_pop( $tokens );
+		$until = array_pop( $tokens );
+		if ( empty( $tokens ) ) {
+			if ( ! isset( $_GET['me'] ) ) {
+				return;
+			}
+			$username = $_GET['me'];
 		} else {
-			return;
+			$username = implode( '-', $tokens );
 		}
+		$user_id = $this->verify_token( $username, $until, $auth );
 
 		if ( ! $user_id ) {
 			return;
@@ -157,7 +161,7 @@ class Access_Control {
 		}
 
 		wp_set_auth_cookie( $user_id );
-		wp_safe_redirect( str_replace( array( '?friend_auth=' . $_GET['friend_auth'], '&friend_auth=' . $_GET['friend_auth'], '?me=' . $_GET['me'], '&me=' . $_GET['me'] ), '', $_SERVER['REQUEST_URI'] ) );
+		wp_safe_redirect( remove_query_arg( array( 'friend_auth', 'me' ) ) );
 		exit;
 	}
 
