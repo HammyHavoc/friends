@@ -2182,6 +2182,9 @@ class Admin {
 	 * @return     int   Unread count + friend requests.
 	 */
 	public function friends_unread_friend_request_count( $unread ) {
+		if ( ! current_user_can( Friends::REQUIRED_ROLE ) ) {
+			return $unread;
+		}
 		$friend_requests = User_Query::all_friend_requests();
 		return $unread + $friend_requests->get_total();
 	}
@@ -2246,17 +2249,28 @@ class Admin {
 				// If we cannot find a site, we shouldn't show the admin bar entry.
 				return;
 			}
-
-			$my_url = set_url_scheme( $site->siteurl );
-			$my_own_site = $site;
-			$on_my_own_site = get_current_blog_id() === intval( $site->blog_id );
-			if ( is_user_member_of_blog( get_current_user_id(), get_current_blog_id() ) ) {
-				if ( current_user_can( 'pending_friend_request' ) ) {
-					$they_requested_friendship = true;
-				} elseif ( current_user_can( 'friend_request' ) ) {
-					$we_requested_friendship = true;
+			if ( current_user_can( Friends::REQUIRED_ROLE ) ) {
+				$my_url = set_url_scheme( $site->siteurl );
+				$my_own_site = $site;
+				$on_my_own_site = get_current_blog_id() === intval( $site->blog_id );
+				if ( is_user_member_of_blog( get_current_user_id(), get_current_blog_id() ) ) {
+					if ( current_user_can( 'pending_friend_request' ) ) {
+						$they_requested_friendship = true;
+					} elseif ( current_user_can( 'friend_request' ) ) {
+						$we_requested_friendship = true;
+					}
 				}
+			} elseif ( current_user_can( 'friend' ) ) {
+				$current_user = wp_get_current_user();
+				if ( ! $current_user->user_url ) {
+					return;
+				}
+
+				$my_url = $current_user->user_url;
 			}
+		} elseif ( current_user_can( Friends::REQUIRED_ROLE ) ) {
+			$my_url = home_url();
+			$on_my_own_site = true;
 		} elseif ( current_user_can( 'friend' ) ) {
 			$current_user = wp_get_current_user();
 			if ( ! $current_user->user_url ) {
@@ -2264,9 +2278,6 @@ class Admin {
 			}
 
 			$my_url = $current_user->user_url;
-		} elseif ( current_user_can( Friends::REQUIRED_ROLE ) ) {
-			$my_url = home_url();
-			$on_my_own_site = true;
 		}
 
 		if ( ! $on_my_own_site && $my_own_site ) {

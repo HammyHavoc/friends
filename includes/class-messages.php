@@ -248,6 +248,9 @@ class Messages {
 	 * @return     int   Unread count + unread messages.
 	 */
 	public function friends_unread_messages_count( $unread ) {
+		if ( ! current_user_can( Friends::REQUIRED_ROLE ) ) {
+			return $unread;
+		}
 		$unread_messages = new \WP_Query(
 			array(
 				'post_type'   => self::CPT,
